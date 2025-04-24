@@ -1,0 +1,101 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.prod
+
+# Virtual environment
+env/
+venv/
+ENV/
+
+# Python
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+woms_project/__pycache__/
+woms_project/migrations/
+*.pyc
+*.pyo
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Django
+local_settings.py
+db.sqlite3
+media/
+
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and databases
+*.sql
+*.sqlite
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.coverage.*
+.cache
+
+# Local development
+*.local
+docker-compose.override.yml
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Redis
+dump.rdb
+
+# Media and static (generated files)
+/media/*
+!/media/.keep
+
+# Static files
+/static/*
+!/static/.gitkeep
+
+# Ignore static and staticfiles directories
+static/
+staticfiles/
+
+# Deployment
+DEPLOYMENT.md
+
+TODO.md
