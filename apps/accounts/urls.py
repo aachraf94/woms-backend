@@ -4,16 +4,16 @@ from . import views
 
 router = DefaultRouter()
 router.register(r'users', views.UserManagementViewSet, basename='user-management')
-router.register(r'agencies', views.AgencyManagementViewSet, basename='agency-management')
 router.register(r'roles', views.RoleViewSet, basename='role')
 
 app_name = 'accounts'
 
 urlpatterns = [
-    # Authentication endpoints remain the same
+    # Authentication endpoints
     path('login/', views.LoginView.as_view(), name='token_obtain_pair'),
     path('refresh/', views.RefreshTokenView.as_view(), name='token_refresh'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('change-password/', views.ChangePasswordView.as_view(), name='change_password'),
     
     # Router for ViewSets
     path('', include(router.urls)),
