@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Role
+from .models import CustomUser
 from django.utils.translation import gettext_lazy as _
 
 @admin.register(CustomUser)
@@ -24,8 +24,3 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('email', 'username', 'password1', 'password2', 'role'),
         }),
     )
-
-@admin.register(Role)
-class RoleAdmin(admin.ModelAdmin):
-    list_display = ('name', 'can_manage_users', 'can_manage_wells', 'can_manage_operations', 'can_view_analytics')
-    readonly_fields = ('name',)

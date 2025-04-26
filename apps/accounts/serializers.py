@@ -1,36 +1,27 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import CustomUser, Role
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from drf_spectacular.utils import extend_schema_field
 from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
-class RoleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Role
-        fields = ['id', 'name', 'can_manage_users', 'can_manage_wells', 
-                  'can_manage_operations', 'can_view_analytics']
-        read_only_fields = ['can_manage_users', 'can_manage_wells', 
-                           'can_manage_operations', 'can_view_analytics']
-
 class UserSerializer(serializers.ModelSerializer):
-    role_name = serializers.SerializerMethodField()
+    role_display = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False)
     
     class Meta:
-        model = CustomUser
+        model = User
         fields = ['id', 'email', 'first_name', 'last_name', 'username', 'company', 
-                  'function', 'is_active', 'role', 'role_name', 'password']
-        read_only_fields = ['id', 'role_name']
+                  'function', 'is_active', 'role', 'role_display', 'password']
+        read_only_fields = ['id', 'role_display']
         extra_kwargs = {
             'role': {'required': False}
         }
     
     @extend_schema_field(str)
-    def get_role_name(self, obj):
-        return obj.role.name if obj.role else None
+    def get_role_display(self, obj):
+        return obj.get_role_display()
         
     def create(self, validated_data):
         password = validated_data.pop('password', None)
@@ -56,7 +47,7 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = User.USERNAME_FIELD
 
 class UserRoleChangeSerializer(serializers.Serializer):
-    role_id = serializers.IntegerField(required=True)
+    role = serializers.ChoiceField(choices=User.Role.choices, required=True)
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)

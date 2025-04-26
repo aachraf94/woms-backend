@@ -106,7 +106,7 @@ class UserManagementViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # Admin users can see all users
-        if user.role and user.role.name == Role.ADMIN:
+        if user.role == User.Role.ADMIN:
             return User.objects.all()
         
         # Otherwise, users can only see themselves
@@ -138,9 +138,9 @@ class UserManagementViewSet(viewsets.ModelViewSet):
                 description="Role changed successfully",
                 response={"type": "object", "properties": {"detail": {"type": "string"}}}
             ),
-            400: OpenApiResponse(description="Role ID is required or invalid"),
+            400: OpenApiResponse(description="Role is required or invalid"),
             403: OpenApiResponse(description="Permission denied"),
-            404: OpenApiResponse(description="User or role not found")
+            404: OpenApiResponse(description="User not found")
         }
     )
     @action(detail=True, methods=['patch'], url_path='change-role')
@@ -148,26 +148,32 @@ class UserManagementViewSet(viewsets.ModelViewSet):
     def change_user_role(self, request, pk=None):
         user = self.get_object()
         
-        role_id = request.data.get('role_id')
-        if not role_id:
+        role = request.data.get('role')
+        if not role:
             return Response(
-                {"detail": "Role ID is required."},
+                {"detail": "Role is required."},
                 status=status.HTTP_400_BAD_REQUEST
             )
             
         try:
-            role = Role.objects.get(id=role_id)
+            # Validate role
+            if role not in [choice[0] for choice in User.Role.choices]:
+                return Response(
+                    {"detail": "Invalid role."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
             user.role = role
             user.save()
                 
             return Response(
-                {"detail": f"User role changed to {role.name}."},
+                {"detail": f"User role changed to {user.get_role_display()}."},
                 status=status.HTTP_200_OK
             )
-        except Role.DoesNotExist:
+        except Exception as e:
             return Response(
-                {"detail": "Role not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
             )
     
     @extend_schema(
@@ -244,17 +250,3 @@ class ChangePasswordView(APIView):
             )
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@extend_schema(
-    tags=["Role Management"],
-    description="API endpoints for viewing role information."
-)
-class RoleViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    API endpoint for viewing role information.
-    Roles are predefined and cannot be modified through the API.
-    """
-    queryset = Role.objects.all()
-    serializer_class = RoleSerializer
-    permission_classes = [IsAuthenticated]

@@ -63,7 +63,7 @@ class WellViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='archive')
     def archive_well(self, request, pk=None):
         well = self.get_object()
-        if not request.user.role.can_archive_wells:
+        if not request.user.can_archive_wells:
             return Response(
                 {"detail": "You don't have permission to archive wells."},
                 status=status.HTTP_403_FORBIDDEN
@@ -90,7 +90,7 @@ class WellViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='unarchive')
     def unarchive_well(self, request, pk=None):
         well = self.get_object()
-        if not request.user.role.can_archive_wells:
+        if not request.user.can_archive_wells:
             return Response(
                 {"detail": "You don't have permission to unarchive wells."},
                 status=status.HTTP_403_FORBIDDEN
@@ -153,7 +153,7 @@ class WellOperationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='start')
     def start_operation(self, request, pk=None):
         operation = self.get_object()
-        if not request.user.role.can_plan_operations:
+        if not request.user.can_plan_operations:
             return Response(
                 {"detail": "You don't have permission to start operations."},
                 status=status.HTTP_403_FORBIDDEN
@@ -193,7 +193,7 @@ class WellOperationViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='complete')
     def complete_operation(self, request, pk=None):
         operation = self.get_object()
-        if not request.user.role.can_plan_operations:
+        if not request.user.can_plan_operations:
             return Response(
                 {"detail": "You don't have permission to complete operations."},
                 status=status.HTTP_403_FORBIDDEN

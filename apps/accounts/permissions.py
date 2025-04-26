@@ -1,5 +1,7 @@
 from rest_framework import permissions
-from .models import Role
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class IsAdmin(permissions.BasePermission):
     """
@@ -9,8 +11,7 @@ class IsAdmin(permissions.BasePermission):
         return (
             request.user and 
             request.user.is_authenticated and 
-            request.user.role and 
-            request.user.role.name == Role.ADMIN
+            request.user.role == User.Role.ADMIN
         )
 
 class IsOperator(permissions.BasePermission):
@@ -21,19 +22,17 @@ class IsOperator(permissions.BasePermission):
         return (
             request.user and 
             request.user.is_authenticated and 
-            request.user.role and 
-            request.user.role.name == Role.OPERATOR
+            request.user.role == User.Role.OPERATOR
         )
 
-class IsManagerOrOperator(permissions.BasePermission):
+class IsManagerOrAdmin(permissions.BasePermission):
     """
-    Permission to only allow manager or operator users to access/modify
+    Permission to only allow manager or admin users to access/modify
     """
     def has_permission(self, request, view):
         return (
             request.user and 
             request.user.is_authenticated and 
-            request.user.role and 
-            request.user.role.name in [Role.OPERATOR, Role.MANAGER]
+            request.user.role in [User.Role.ADMIN, User.Role.MANAGER]
         )
 
