@@ -1,33 +1,39 @@
 from django.core.management.base import BaseCommand
-from apps.accounts.models import Role
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class Command(BaseCommand):
-    help = 'Initialize the basic roles in the system'
+    help = 'Initialiser les rôles de base dans le système'
 
     def handle(self, *args, **options):
-        # Create Admin role
-        admin_role, created = Role.objects.get_or_create(
-            name=Role.ADMIN
-        )
-        if created:
-            self.stdout.write(self.style.SUCCESS('Created Admin role'))
+        # Les rôles sont maintenant définis dans le modèle CustomUser.Role
+        roles_info = [
+            (User.Role.ADMIN, 'Administrateur'),
+            (User.Role.MANAGER, 'Gestionnaire'), 
+            (User.Role.OPERATOR, 'Opérateur'),
+            (User.Role.SUPERVISOR, 'Superviseur'),
+            (User.Role.ENGINEER, 'Ingénieur'),
+            (User.Role.VIEWER, 'Visualiseur'),
+        ]
+        
+        self.stdout.write(self.style.SUCCESS('Rôles disponibles dans le système:'))
+        for role_value, role_display in roles_info:
+            self.stdout.write(f'  - {role_value}: {role_display}')
+        
+        # Créer un utilisateur admin par défaut s'il n'existe pas
+        admin_email = 'admin@woms.local'
+        if not User.objects.filter(email=admin_email).exists():
+            admin_user = User.create_admin_user(
+                email=admin_email,
+                password='admin123',
+                first_name='Admin',
+                last_name='Système'
+            )
+            self.stdout.write(
+                self.style.SUCCESS(f'Utilisateur admin créé: {admin_email}')
+            )
         else:
-            self.stdout.write(self.style.WARNING('Admin role already exists'))
-            
-        # Create Manager role
-        manager_role, created = Role.objects.get_or_create(
-            name=Role.MANAGER
-        )
-        if created:
-            self.stdout.write(self.style.SUCCESS('Created Manager role'))
-        else:
-            self.stdout.write(self.style.WARNING('Manager role already exists'))
-            
-        # Create Operator role
-        operator_role, created = Role.objects.get_or_create(
-            name=Role.OPERATOR
-        )
-        if created:
-            self.stdout.write(self.style.SUCCESS('Created Operator role'))
-        else:
-            self.stdout.write(self.style.WARNING('Operator role already exists'))
+            self.stdout.write(
+                self.style.WARNING(f'Utilisateur admin existe déjà: {admin_email}')
+            )

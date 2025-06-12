@@ -5,10 +5,15 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from .models import Well, WellOperation, DailyReport, WellDocument
+from .region_models import Region, Forage, Phase, TypeOperation, Operation, Probleme, TypeIndicateur, Indicateur, Reservoir
 from .serializers import (
     WellSerializer, WellDetailSerializer, WellOperationSerializer,
-    DailyReportSerializer, WellDocumentSerializer
+    DailyReportSerializer, WellDocumentSerializer,
+    RegionSerializer, ForageSerializer, PhaseSerializer, 
+    TypeOperationSerializer, OperationSerializer, ProblemeSerializer,
+    TypeIndicateurSerializer, IndicateurSerializer, ReservoirSerializer
 )
+from apps.accounts.permissions import IsOperatorOrAbove, IsManagerOrAdmin
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 
 class WellViewSet(viewsets.ModelViewSet):
@@ -274,9 +279,9 @@ class WellDocumentViewSet(viewsets.ModelViewSet):
     """
     serializer_class = WellDocumentSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['title', 'description', 'document_type', 'well__name']
-    ordering_fields = ['uploaded_at', 'title', 'document_type']
-    ordering = ['-uploaded_at']
+    search_fields = ['nom', 'title', 'description', 'type', 'document_type', 'well__nom', 'well__name']
+    ordering_fields = ['date_upload', 'uploaded_at', 'nom', 'title', 'type']
+    ordering = ['-date_upload']
     
     def get_queryset(self):
         """Return all documents or filter by well if specified."""
@@ -290,9 +295,196 @@ class WellDocumentViewSet(viewsets.ModelViewSet):
         # Filter by document type if provided
         document_type = self.request.query_params.get('type', None)
         if document_type:
-            queryset = queryset.filter(document_type=document_type)
+            queryset = queryset.filter(Q(type=document_type) | Q(document_type=document_type))
             
         return queryset
     
     def perform_create(self, serializer):
-        serializer.save(uploaded_by=self.request.user)
+        serializer.save(uploade_par=self.request.user, uploaded_by=self.request.user)
+
+
+class RegionViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing regions.
+    """
+    queryset = Region.objects.all()
+    serializer_class = RegionSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['nom', 'code', 'localisation', 'responsable']
+    ordering_fields = ['nom', 'code', 'created_at']
+    ordering = ['nom']
+
+
+class ForageViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing drilling operations (forages).
+    """
+    queryset = Forage.objects.all()
+    serializer_class = ForageSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['puit__nom', 'puit__name']
+    ordering_fields = ['date_debut', 'date_fin', 'cout', 'created_at']
+    ordering = ['-date_debut']
+    
+    def get_queryset(self):
+        queryset = Forage.objects.all()
+        
+        # Filter by well if provided
+        well_id = self.request.query_params.get('well_id', None)
+        if well_id:
+            queryset = queryset.filter(puit_id=well_id)
+            
+        return queryset
+
+
+class PhaseViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing drilling phases.
+    """
+    queryset = Phase.objects.all()
+    serializer_class = PhaseSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['numero_phase', 'diametre', 'description', 'forage__puit__nom']
+    ordering_fields = ['numero_phase', 'date_debut_prevue', 'date_debut_reelle']
+    ordering = ['forage', 'numero_phase']
+    
+    def get_queryset(self):
+        queryset = Phase.objects.all()
+        
+        # Filter by forage if provided
+        forage_id = self.request.query_params.get('forage_id', None)
+        if forage_id:
+            queryset = queryset.filter(forage_id=forage_id)
+            
+        return queryset
+
+
+class TypeOperationViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing operation types.
+    """
+    queryset = TypeOperation.objects.all()
+    serializer_class = TypeOperationSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['code', 'nom', 'description']
+    ordering_fields = ['code', 'nom']
+    ordering = ['code']
+
+
+class OperationViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing phase operations.
+    """
+    queryset = Operation.objects.all()
+    serializer_class = OperationSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['description', 'type_operation__nom', 'phase__numero_phase']
+    ordering_fields = ['date_debut', 'date_fin', 'statut', 'created_at']
+    ordering = ['-created_at']
+    
+    def get_queryset(self):
+        queryset = Operation.objects.all()
+        
+        # Filter by phase if provided
+        phase_id = self.request.query_params.get('phase_id', None)
+        if phase_id:
+            queryset = queryset.filter(phase_id=phase_id)
+            
+        # Filter by status if provided
+        statut = self.request.query_params.get('statut', None)
+        if statut:
+            queryset = queryset.filter(statut=statut)
+            
+        return queryset
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class ProblemeViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing problems and incidents.
+    """
+    queryset = Probleme.objects.all()
+    serializer_class = ProblemeSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['titre', 'description', 'solution']
+    ordering_fields = ['date_detection', 'date_resolution', 'gravite', 'statut']
+    ordering = ['-date_detection']
+    
+    def get_queryset(self):
+        queryset = Probleme.objects.all()
+        
+        # Filter by various parameters
+        gravite = self.request.query_params.get('gravite', None)
+        if gravite:
+            queryset = queryset.filter(gravite=gravite)
+            
+        statut = self.request.query_params.get('statut', None)
+        if statut:
+            queryset = queryset.filter(statut=statut)
+            
+        type_probleme = self.request.query_params.get('type', None)
+        if type_probleme:
+            queryset = queryset.filter(type_probleme=type_probleme)
+            
+        return queryset
+    
+    def perform_create(self, serializer):
+        serializer.save(detecte_par=self.request.user)
+
+
+class TypeIndicateurViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing indicator types.
+    """
+    queryset = TypeIndicateur.objects.all()
+    serializer_class = TypeIndicateurSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['code', 'nom', 'unite', 'description']
+    ordering_fields = ['code', 'nom']
+    ordering = ['code']
+
+
+class IndicateurViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing performance indicators.
+    """
+    queryset = Indicateur.objects.all()
+    serializer_class = IndicateurSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['type_indicateur__nom', 'notes']
+    ordering_fields = ['date_mesure', 'valeur']
+    ordering = ['-date_mesure']
+    
+    def get_queryset(self):
+        queryset = Indicateur.objects.all()
+        
+        # Filter by phase if provided
+        phase_id = self.request.query_params.get('phase_id', None)
+        if phase_id:
+            queryset = queryset.filter(phase_id=phase_id)
+            
+        return queryset
+
+
+class ReservoirViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing reservoir information.
+    """
+    queryset = Reservoir.objects.all()
+    serializer_class = ReservoirSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['nom', 'type_fluide', 'puit__nom']
+    ordering_fields = ['profondeur', 'pression', 'temperature']
+    ordering = ['profondeur']
+    
+    def get_queryset(self):
+        queryset = Reservoir.objects.all()
+        
+        # Filter by well if provided
+        well_id = self.request.query_params.get('well_id', None)
+        if well_id:
+            queryset = queryset.filter(puit_id=well_id)
+            
+        return queryset
